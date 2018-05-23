@@ -6,8 +6,12 @@ import traceback
 from flask import Flask, request, jsonify
 import pandas as pd
 from sklearn.externals import joblib
-from google.cloud import storage
-from storage import upload_model, delete_model, get_model, download_model
+from gcstorage import upload_model, delete_model, get_model, load_model
+
+
+model_directory = 'model'
+model_file_name = '%s/model.pkl' % model_directory
+model_columns_file_name = '%s/model_columns.pkl' % model_directory
 
 
 def shutdown_server():
@@ -17,42 +21,8 @@ def shutdown_server():
     func()
 
 
-def load_model(bucket_name, source_blob_name, destination_file_name):
-    if bucket_name:
-        try:
-            """Download model from GCS bucket."""
-            storage_client = storage.Client()
-            bucket = storage_client.get_bucket(bucket_name)  # Bucket name
-            blob = bucket.blob(source_blob_name)  # Model Name
-            model = blob.download_to_filename(
-                destination_file_name)  # Destination file name
-            print('Blob {} downloaded to {}.'.format(
-                source_blob_name, destination_file_name))
-            clf = joblib.load(model)
-            return clf
-        except Exception as e:
-            clf = None
-            raise FileNotFoundError(
-                "Model found in the GCS bucket:" % (source_blob_name, e))
-    else:
-        print('Sorry, that model bucket does not exist!')
-        return 'Enter a valid modle bucket name'
-
-
-def upload_model(model_name):
-    """Creates a new model in GCS."""
-    storage_client = storage.Client()
-    bucket = storage_client.upload_model(model_name)
-    print('Model {} Uploaded'.format(bucket.name))
-
-
 app = Flask(__name__)
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./service_account.json"
-
-# inputs
-#training_data = 'data/titanic.csv'
-#include = ['Age', 'Sex', 'Embarked', 'Survived']
-#dependent_variable = include[-1]
 
 
 @app.route('/predict', methods=['POST'])
@@ -62,16 +32,10 @@ def predict():
         try:
             json_ = request.json
             query = pd.get_dummies(pd.DataFrame(json_))
-
-            # https://github.com/amirziai/sklearnflask/issues/3
-            # Thanks to @lorenzori
             query = query.reindex(columns=model_columns, fill_value=0)
-
-            prediction = list(clf.predict(query))
-
+            prediction = clf.predict(query).tolist()
             return jsonify({'prediction': prediction})
         except Exception as e:
-
             return jsonify({'error': str(e), 'trace': traceback.format_exc()})
     else:
         print('train first')
@@ -83,9 +47,11 @@ predict.counter = 0
 
 @app.route('/train', methods=['GET'])
 def train():
-    # using random forest as an example
-    # can do the training separately and just update the pickles
     from sklearn.ensemble import RandomForestClassifier as rf
+    # inputs
+    training_data = 'data/titanic.csv'
+    include = ['Age', 'Sex', 'Embarked', 'Survived']
+    dependent_variable = include[-1]
 
     df = pd.read_csv(training_data)
     df_ = df[include]
@@ -107,7 +73,7 @@ def train():
 
     # capture a list of columns that will be used for prediction
     global model_columns
-    model_columns = list(x.columns)
+    model_columns = x.columns.tolist()
     joblib.dump(model_columns, model_columns_file_name)
 
     global clf
@@ -144,7 +110,8 @@ def uploadmodel():
 
 @app.route('/get', methods=['GET'])
 def getmodels():
-    return get_models()
+    bucket_name = request.args.get('bucket_name')
+    return get_model(bucket_name)
 
 
 @app.route('/delete', methods=['POST'])
@@ -166,6 +133,10 @@ if __name__ == '__main__':
         port = int(sys.argv[1])
     except Exception as e:
         port = 80
-    clf = load_model(os.getenv("MODEL_DIR", default='model/'))
-
+    print("Loading model")
+    clf = load_model(os.getenv("GCS_MODEL_BUCKET", default='generic-model'),
+                     os.getenv("MODEL_NAME", default='model.pkl'))
+    TRAIN = train()
+    predict
+    shutdown = shutdown()
     app.run(host='0.0.0.0', port=port, debug=True)
