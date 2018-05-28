@@ -6,7 +6,7 @@ import traceback
 from flask import Flask, request, jsonify
 import pandas as pd
 from sklearn.externals import joblib
-from gcstorage import upload_model, delete_model, get_model, load_model
+from gcstorage import upload_model, delete_model, get_model, load_model, check_modle
 
 
 model_directory = 'model'
@@ -22,7 +22,7 @@ def shutdown_server():
 
 
 app = Flask(__name__)
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./service_account.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
 
 @app.route('/predict', methods=['POST'])
@@ -122,7 +122,7 @@ def deletemodel():
     return delete_model(bucket_name, file_name, file_path)
 
 
-@app.route('/shutdown', methods=['POST'])
+@app.route('/shutdown', methods=['GET'])
 def shutdown():
     shutdown_server()
     return 'Server shutting down...'
@@ -132,11 +132,11 @@ if __name__ == '__main__':
     try:
         port = int(sys.argv[1])
     except Exception as e:
-        port = 80
-    print("Loading model")
+        port = 5000
+    print("Checking if model is valid")
+    check_modle(os.getenv("GCS_MODEL_BUCKET", default='generic-model'),
+                os.getenv("MODEL_NAME", default='model.pkl'))
+    print("Loading model to fs")
     clf = load_model(os.getenv("GCS_MODEL_BUCKET", default='generic-model'),
                      os.getenv("MODEL_NAME", default='model.pkl'))
-    TRAIN = train()
-    predict
-    shutdown = shutdown()
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -1,26 +1,37 @@
-import pickle
-# import errno
 import os
 import glob
 from google.cloud import storage
 from sklearn.externals import joblib
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
 
 def get_model(bucket_name):
     """Lists all the blobs in the bucket."""
     storage_client = storage.Client()
     bucket = storage_client.get_bucket(bucket_name)
-
+    models = []
     blobs = (bucket.list_blobs())
 
     for blob in blobs:
-        print(blob.name)
-    return blobs
+        models.append(blob.name)
+    return models
+
+
+def check_modle(bucket_name, model_name):
+    """Check if its a valid model avialable in GCS bucket"""
+    models = get_model(bucket_name)
+    if (model_name in models):
+        print('{} is a valid model in GCS bucket'.format(model_name))
+        return
+    else:
+        raise SystemExit("Unexpected model {}! Add {} to GCS bucket and try again.".format(
+            model_name, model_name))
 
 
 def load_model(bucket_name, source_model_name):
+    """Load model from GCS bucket."""
     if bucket_name:
-        """Load model from Generic models GCS bucket."""
         storage_client = storage.Client()
         bucket = storage_client.get_bucket(bucket_name)  # Bucket name
         blob = bucket.blob(source_model_name)  # Source Model Name
@@ -32,11 +43,16 @@ def load_model(bucket_name, source_model_name):
     try:
         # Find the newest model file in the directory
         files = [x for x in os.listdir(model_directory) if x.endswith(".pkl")]
-        list_of_files = glob.glob('./models/*')
+        list_of_files = glob.glob('./models/*.pkl')
         newest = max(list_of_files, key=os.path.getctime)
         print("Recently modified Docs", newest)
-        model_file_name = '%s/%s' % (model_directory, newest[0])
-        clf = joblib.load(model_file_name)
+        model_file_name = '%s' % (newest)
+        print("Model File name", model_file_name)
+        # TODO: Fix FileNotFoundError when loading pickled modules
+        # FileNotFoundError: [Errno 2] No such file or directory: './models\\model.pkl_01.npy'
+        # clf = joblib.load(model_file_name)
+
+        clf = (model_file_name)
         return clf
 
     except Exception as e:
@@ -53,7 +69,7 @@ def upload_model(bucket_name, file_name, file_path):
     client = storage.Client()
     bucket = client.get_bucket(bucket_name)
     blob = bucket.blob(file_name)
-    blob.upload_from_filename(file_path)  # filename='./api.py'
+    blob.upload_from_filename(file_path)  # filename to upload from local fs
     print('Blob {} uploaded.'.format(file_name))
     return blob.public_url
 
