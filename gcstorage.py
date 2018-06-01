@@ -35,33 +35,34 @@ def load_model(bucket_name, source_model_name):
         storage_client = storage.Client()
         bucket = storage_client.get_bucket(bucket_name)  # Bucket name
         blob = bucket.blob(source_model_name)  # Source Model Name
+        # Dependencies for source model
+        cl_blob = bucket.blob('model_columns.pkl')
         model = blob.download_to_filename(
-            './models/{}'.format(source_model_name))
+            './model/{}'.format(source_model_name))
+        cl_model = cl_blob.download_to_filename(
+            './model/{}'.format('model_columns.pkl'))
         print('Blob {} downloaded to {}.'.format(
             source_model_name, source_model_name))
-        model_directory = './models'
-    try:
-        # Find the newest model file in the directory
-        files = [x for x in os.listdir(model_directory) if x.endswith(".pkl")]
-        list_of_files = glob.glob('./models/*.pkl')
-        newest = max(list_of_files, key=os.path.getctime)
-        print("Recently modified Docs", newest)
-        model_file_name = '%s' % (newest)
-        print("Model File name", model_file_name)
-        # TODO: Fix FileNotFoundError when loading pickled modules
-        # FileNotFoundError: [Errno 2] No such file or directory: './models\\model.pkl_01.npy'
-        # clf = joblib.load(model_file_name)
+        model_directory = './model'
+        try:
+            # Find the newest model file in the directory
+            files = [x for x in os.listdir(
+                model_directory) if x.endswith(".pkl")]
+            list_of_files = glob.glob('./model/*.pkl')
+            newest = max(list_of_files, key=os.path.getctime)
+            print("Recently modified Docs", newest)
+            model_file_name = '%s' % (newest)
+            print("Model File name", model_file_name)
+            clf = joblib.load(model_file_name)
+            return clf
 
-        clf = (model_file_name)
-        return clf
-
-    except Exception as e:
-        clf = None
-        raise FileNotFoundError(
-            "No model found in {} with suffix '.pkl'{}.".format(model_directory, e))
-    else:
-        print('Sorry, that model bucket does not exist!')
-        return 'Enter a valid modle name'
+        except Exception as e:
+            clf = None
+            raise FileNotFoundError(
+                "No model found in {} with suffix '.pkl'{}.".format(model_directory, e))
+        else:
+            print('Sorry, that model bucket does not exist!')
+            return 'Enter a valid modle name'
 
 
 def upload_model(bucket_name, file_name, file_path):

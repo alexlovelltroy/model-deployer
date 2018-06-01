@@ -16,6 +16,6 @@ steps:
   name: 'gcr.io/cloud-builders/kubectl'
   args: ['apply', '-f', 'model.yaml']
   env:
-  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a' #Change this
-  - 'CLOUDSDK_CONTAINER_CLUSTER=model-spike' #Change this
+  - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a' #Change this to your cluster region
+  - 'CLOUDSDK_CONTAINER_CLUSTER=model-spike' #Change this to your k8s cluster name
 images: ['gcr.io/$PROJECT_ID/$REPO_NAME/$BRANCH_NAME:$SHORT_SHA']

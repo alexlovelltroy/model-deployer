@@ -39,7 +39,7 @@ def predict():
             return jsonify({'error': str(e), 'trace': traceback.format_exc()})
     else:
         print('train first')
-        return 'no model here'
+        return 'no model here, train first !!'
 
 
 predict.counter = 0
@@ -133,10 +133,17 @@ if __name__ == '__main__':
         port = int(sys.argv[1])
     except Exception as e:
         port = 5000
-    print("Checking if model is valid")
-    check_modle(os.getenv("GCS_MODEL_BUCKET", default='generic-model'),
-                os.getenv("MODEL_NAME", default='model.pkl'))
-    print("Loading model to fs")
-    clf = load_model(os.getenv("GCS_MODEL_BUCKET", default='generic-model'),
-                     os.getenv("MODEL_NAME", default='model.pkl'))
+    try:
+        print("Checking if model is valid")
+        check_modle(os.getenv("GCS_MODEL_BUCKET", default='generic-model'),
+                    os.getenv("MODEL_NAME", default='model.pkl'))
+        print("Loading model to fs")
+        clf = load_model(os.getenv("GCS_MODEL_BUCKET", default='generic-model'),
+                         os.getenv("MODEL_NAME", default='model.pkl'))
+    except Exception as e:
+        print("No model here")
+        print("Train first")
+        print(e)
+        clf = None
+
     app.run(host='0.0.0.0', port=port, debug=False)
