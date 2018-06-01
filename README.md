@@ -5,7 +5,8 @@ A simple Flask application that can serve predictions from a scikit-learn model.
 When the Flask app is started it returns predictions through the /predict endpoint. You can also use the /train endpoint to train/retrain the model. Any sklearn model can be used for prediction.
 
 Use /shutdown endpoint to shutdown the server
-other API endpoints for GCS storage.
+
+There are also other API endpoints for GCS storage.
 
 ## Requirements
 - GKE Cluster -Google Kubernetes Engine
